@@ -1,0 +1,16 @@
+# このダッシュボードとは無関係な、別演習用のファイル・フォルダ
+stopwatch.html
+todo.html
+_bat_test_log.txt
+/CSV/
+/JSON/
+/Markdown/
+/Python/
+/Text/
+
+# Claude Code の内部管理ファイル
+.claude/
+
+# Python
+__pycache__/
+*.pyc

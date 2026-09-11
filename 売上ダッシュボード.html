@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>コーヒー売上台帳</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600;700&family=IBM+Plex+Sans+JP:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --bg:        #F3EEE5;
+    --surface:   #FBF8F2;
+    --surface-2: #F6F1E7;
+    --ink:       #241C15;
+    --ink-2:     #6B5D50;
+    --muted:     #948573;
+    --border:    rgba(36,28,21,0.12);
+    --border-strong: rgba(36,28,21,0.22);
+    --grid:      #E4DDD0;
+    --accent:    #8A4A1E;
+    --accent-ink: #6E3B17;
+    --focus:     #2A5DB0;
+    --warn-bg:   #D03B3B;
+
+    --cat-food:  #C17817;
+    --cat-gift:  #C2185B;
+    --cat-sub:   #2A5DB0;
+    --cat-zakka: #1F9463;
+
+    --region-1:  #143E77;
+    --region-2:  #1E4E93;
+    --region-3:  #2A5DB0;
+    --region-4:  #5B85C4;
+    --region-5:  #8CA9D6;
+    --region-6:  #BBCBE7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg:        #16110C;
+      --surface:   #201A13;
+      --surface-2: #251E16;
+      --ink:       #F5EEE4;
+      --ink-2:     #C9BBAA;
+      --muted:     #8F8172;
+      --border:    rgba(245,238,228,0.12);
+      --border-strong: rgba(245,238,228,0.24);
+      --grid:      #362B1F;
+      --accent:    #E2A868;
+      --accent-ink: #EBC08C;
+      --focus:     #6C8DC0;
+      --warn-bg:   #E66767;
+
+      --region-1:  #274A80;
+      --region-2:  #325B98;
+      --region-3:  #4972AE;
+      --region-4:  #6C8DC0;
+      --region-5:  #93ABD2;
+      --region-6:  #BECBE3;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:        #16110C;
+    --surface:   #201A13;
+    --surface-2: #251E16;
+    --ink:       #F5EEE4;
+    --ink-2:     #C9BBAA;
+    --muted:     #8F8172;
+    --border:    rgba(245,238,228,0.12);
+    --border-strong: rgba(245,238,228,0.24);
+    --grid:      #362B1F;
+    --accent:    #E2A868;
+    --accent-ink: #EBC08C;
+    --focus:     #6C8DC0;
+    --warn-bg:   #E66767;
+
+    --region-1:  #274A80;
+    --region-2:  #325B98;
+    --region-3:  #4972AE;
+    --region-4:  #6C8DC0;
+    --region-5:  #93ABD2;
+    --region-6:  #BECBE3;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans JP", "IBM Plex Sans", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  button { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  .sheet {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 36px 20px 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 18px;
+    border-bottom: 2px solid var(--border-strong);
+  }
+  .masthead .brand { display: flex; flex-direction: column; gap: 6px; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--accent-ink);
+    text-transform: uppercase;
+  }
+  h1 {
+    font-family: "IBM Plex Serif", serif;
+    font-weight: 600;
+    font-size: clamp(26px, 4vw, 34px);
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: 0.01em;
+  }
+  .masthead .meta {
+    text-align: right;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.7;
+  }
+  .masthead .meta .ledger-no { color: var(--muted); }
+
+  /* ---------- banners (errors / status) ---------- */
+  .banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+  .banner-error {
+    background: color-mix(in srgb, var(--warn-bg) 14%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--warn-bg) 45%, var(--border-strong));
+    color: var(--ink);
+  }
+  .banner-info {
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    color: var(--ink-2);
+  }
+
+  /* ---------- CSV drop zone ---------- */
+  .dropzone {
+    border: 2px dashed var(--border-strong);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--muted);
+    background: var(--surface);
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .dropzone.drag-over {
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    border-color: var(--accent);
+    color: var(--ink-2);
+  }
+
+  /* ---------- filter bar ---------- */
+  .filterbar {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .filter-group { position: relative; display: flex; flex-direction: column; gap: 6px; }
+  .seg {
+    display: inline-flex;
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    overflow: hidden;
+  }
+  .seg-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--ink-2);
+    font-size: 12.5px;
+    padding: 7px 12px;
+    cursor: pointer;
+    border-right: 1px solid var(--border);
+  }
+  .seg-btn:last-child { border-right: none; }
+  .seg-btn:hover { background: var(--surface-2); }
+  .seg-btn.active { background: var(--accent); color: var(--surface); font-weight: 600; }
+  .custom-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .custom-range input[type="date"] {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 5px 7px;
+  }
+
+  .combo-btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--ink);
+    font-size: 12.5px;
+    padding: 7px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .combo-btn:hover { background: var(--grid); }
+  .combo-btn::after { content: "▾"; font-size: 9px; color: var(--muted); }
+  .combo-btn[aria-expanded="true"]::after { content: "▴"; }
+  .combo-count {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--accent-ink);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    border-radius: 999px;
+    padding: 1px 7px;
+  }
+  .combo-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 20;
+    min-width: 190px;
+    max-width: 280px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .combo-panel-actions {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    padding: 2px 6px 6px;
+    border-bottom: 1px solid var(--grid);
+    margin-bottom: 4px;
+  }
+  .combo-panel-actions button {
+    background: none;
+    border: none;
+    color: var(--accent-ink);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0;
+  }
+  .combo-panel label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding: 6px 6px;
+    border-radius: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .combo-panel label .file-meta { color: var(--muted); font-size: 11px; margin-left: auto; padding-left: 10px; }
+  .combo-panel label:hover { background: var(--surface-2); }
+  .combo-panel input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; flex-shrink: 0; }
+  .combo-panel .swatch-inline { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+
+  .reset-btn {
+    appearance: none;
+    background: none;
+    border: none;
+    color: var(--accent-ink);
+    font-size: 12.5px;
+    cursor: pointer;
+    padding: 7px 4px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .reset-btn:hover { color: var(--ink); }
+
+  .filter-summary {
+    flex-basis: 100%;
+    font-size: 11.5px;
+    color: var(--muted);
+    padding-top: 4px;
+    border-top: 1px solid var(--grid);
+    margin-top: 2px;
+  }
+  .filter-summary strong { color: var(--ink-2); font-weight: 600; }
+
+  /* ---------- section shell ---------- */
+  section { display: flex; flex-direction: column; gap: 14px; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .section-title { font-family: "IBM Plex Serif", serif; font-size: 19px; font-weight: 600; margin: 0; }
+  .section-sub { font-size: 12.5px; color: var(--muted); }
+
+  /* ---------- KPI row ---------- */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .kpi { background: var(--surface); padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+  .kpi-label { font-size: 12px; color: var(--ink-2); letter-spacing: 0.02em; }
+  .kpi-value { font-size: clamp(22px, 3.4vw, 30px); font-weight: 600; color: var(--ink); line-height: 1.1; }
+  .kpi-value .unit { font-size: 0.5em; color: var(--ink-2); margin-left: 3px; font-weight: 500; }
+  .kpi-sub { font-size: 11.5px; color: var(--muted); }
+
+  /* ---------- monthly trend ---------- */
+  .trend-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 22px 22px 16px; }
+  .trend-bars {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 22px;
+    align-items: end;
+    height: 168px;
+    padding-top: 8px;
+    border-bottom: 1px solid var(--grid);
+  }
+  .trend-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
+  .trend-value { font-size: 13.5px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+  .trend-bar {
+    width: 56%;
+    max-width: 84px;
+    min-height: 2px;
+    background: linear-gradient(180deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 78%, var(--ink) 8%) 100%);
+    border-radius: 5px 5px 2px 2px;
+    transition: height 0.2s ease;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .trend-bar { background: linear-gradient(180deg, var(--accent) 0%, #B9793B 100%); }
+  }
+  :root[data-theme="dark"] .trend-bar { background: linear-gradient(180deg, var(--accent) 0%, #B9793B 100%); }
+  .trend-foot { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 22px; padding-top: 10px; }
+  .trend-month { text-align: center; font-size: 12.5px; color: var(--ink-2); }
+  .trend-month .m { font-weight: 600; color: var(--ink); display: block; font-family: "IBM Plex Mono", monospace; letter-spacing: 0.02em; }
+  .trend-month .d { font-size: 11px; color: var(--muted); }
+
+  /* ---------- ranking ---------- */
+  .rank-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); padding-bottom: 6px; border-bottom: 1px solid var(--grid); margin-bottom: 4px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+  .rank-row { display: grid; grid-template-columns: 128px 1fr auto; align-items: center; gap: 12px; padding: 7px 0; }
+  .rank-name { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-track { background: var(--surface-2); border-radius: 4px; height: 20px; position: relative; overflow: hidden; }
+  .rank-fill { height: 100%; border-radius: 4px; transition: width 0.2s ease; }
+  .rank-figs { text-align: right; font-size: 12.5px; white-space: nowrap; min-width: 190px; }
+  .rank-figs .amt { font-weight: 600; color: var(--ink); }
+  .rank-figs .cnt { color: var(--muted); margin-left: 8px; }
+
+  /* ---------- breakdown row ---------- */
+  .breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .mini-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .mini-title { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-family: "IBM Plex Mono", monospace; margin-bottom: 4px; }
+  .mini-row { display: grid; grid-template-columns: 68px 1fr auto; align-items: center; gap: 10px; padding: 5px 0; }
+  .mini-name { font-size: 12.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mini-track { background: var(--surface-2); border-radius: 3px; height: 12px; overflow: hidden; }
+  .mini-fill { height: 100%; border-radius: 3px; transition: width 0.2s ease; }
+  .mini-val { font-size: 12px; text-align: right; min-width: 78px; color: var(--ink); }
+
+  .empty-note { font-size: 13px; color: var(--muted); text-align: center; padding: 24px 0; }
+
+  footer { font-size: 11.5px; color: var(--muted); text-align: center; padding-top: 8px; border-top: 1px solid var(--grid); }
+
+  @media (max-width: 640px) {
+    .breakdown { grid-template-columns: 1fr; }
+    .rank-row { grid-template-columns: 92px 1fr; }
+    .rank-figs { grid-column: 1 / -1; text-align: left; min-width: 0; padding-left: 92px; }
+    .masthead { flex-direction: column; align-items: flex-start; }
+    .masthead .meta { text-align: left; }
+    .filterbar { flex-direction: column; align-items: stretch; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <div class="masthead">
+    <div class="brand">
+      <span class="eyebrow">Sales Ledger</span>
+      <h1>コーヒー売上台帳</h1>
+    </div>
+    <div class="meta">
+      <div id="date-range-label">データ期間 読み込み中&hellip;</div>
+      <div class="ledger-no" id="record-count">読み込み中&hellip;</div>
+    </div>
+  </div>
+
+  <div class="banner banner-error" id="load-error" hidden></div>
+  <div class="banner banner-info" id="upload-status" hidden></div>
+
+  <div class="dropzone" id="dropzone">ここにCSVファイルをドラッグ&amp;ドロップすると、ダッシュボードに追加されます</div>
+
+  <div class="filterbar" id="filterbar">
+    <div class="filter-group">
+      <button class="combo-btn" id="file-btn" type="button" aria-expanded="false" aria-haspopup="true">CSVファイル<span class="combo-count" id="file-count" hidden></span></button>
+      <div class="combo-panel" id="file-panel" hidden></div>
+    </div>
+
+    <div class="filter-group">
+      <div class="seg" id="period-seg" role="group" aria-label="期間"></div>
+      <div class="custom-range" id="custom-range" hidden>
+        <input type="date" id="date-from">
+        <span>〜</span>
+        <input type="date" id="date-to">
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <button class="combo-btn" id="region-btn" type="button" aria-expanded="false" aria-haspopup="true">地域<span class="combo-count" id="region-count" hidden></span></button>
+      <div class="combo-panel" id="region-panel" hidden></div>
+    </div>
+
+    <div class="filter-group">
+      <button class="combo-btn" id="product-btn" type="button" aria-expanded="false" aria-haspopup="true">商品<span class="combo-count" id="product-count" hidden></span></button>
+      <div class="combo-panel" id="product-panel" hidden></div>
+    </div>
+
+    <button class="reset-btn" id="reset-btn" type="button">フィルターをリセット</button>
+
+    <div class="filter-summary" id="filter-summary"></div>
+  </div>
+
+  <section class="kpis">
+    <div class="kpi">
+      <div class="kpi-label">合計売上</div>
+      <div class="kpi-value num" id="kpi-total">&yen;0</div>
+      <div class="kpi-sub" id="kpi-total-sub"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">取引件数</div>
+      <div class="kpi-value num" id="kpi-count">0<span class="unit">件</span></div>
+      <div class="kpi-sub" id="kpi-count-sub"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">平均取引額</div>
+      <div class="kpi-value num" id="kpi-avg">&yen;0<span class="unit">/件</span></div>
+      <div class="kpi-sub">1取引あたりの平均売上</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2 class="section-title">月別推移</h2>
+      <div class="section-sub">月次の売上合計・取引件数(選択中のファイル・期間・地域・商品を反映)</div>
+    </div>
+    <div class="trend-card" id="trend-card"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2 class="section-title">商品別ランキング</h2>
+      <div class="section-sub">売上金額の降順・カテゴリ別に色分け</div>
+    </div>
+    <div class="rank-card" id="rank-card"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2 class="section-title">内訳</h2>
+      <div class="section-sub">カテゴリ別・地域別の売上構成</div>
+    </div>
+    <div class="breakdown">
+      <div class="mini-card" id="category-card"></div>
+      <div class="mini-card" id="region-card"></div>
+    </div>
+  </section>
+
+  <footer>選択したCSVファイルを集計 &middot; 単価×数量=売上金額として整合を確認済み &middot; 上部のフィルターでファイル・期間・地域・商品を絞り込めます</footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var DATA = [];
+  var FILES = [];
+  var selectedFiles = new Set();
+
+  var CATEGORY_ORDER = ["食品", "ギフト", "サブスク", "雑貨"];
+  var CATEGORY_COLOR = { "食品": "var(--cat-food)", "ギフト": "var(--cat-gift)", "サブスク": "var(--cat-sub)", "雑貨": "var(--cat-zakka)" };
+  var REGION_ORDER = ["東京", "大阪", "名古屋", "福岡", "その他", "札幌"];
+  var REGION_COLOR = { "東京": "var(--region-1)", "大阪": "var(--region-2)", "名古屋": "var(--region-3)", "福岡": "var(--region-4)", "その他": "var(--region-5)", "札幌": "var(--region-6)" };
+  var PRODUCT_ORDER = ["定期便（月1）", "ドリップパックギフト", "ギフトセット", "コーヒー豆200g", "タンブラー", "マグカップ", "ドリップコーヒー12杯", "カフェオレベース"];
+  var PRODUCT_CATEGORY = {};
+
+  var DATE_MIN = null, DATE_MAX = null;
+
+  var state = {
+    periodMode: "all",
+    customFrom: null,
+    customTo: null,
+    regions: new Set(REGION_ORDER),
+    products: new Set(PRODUCT_ORDER)
+  };
+
+  function yen(n) { return "¥" + Math.round(n).toLocaleString("ja-JP"); }
+  function fmt(n) { return Math.round(n).toLocaleString("ja-JP"); }
+
+  function lastDayOfMonth(y, m) { return new Date(y, m, 0).getDate(); }
+
+  function getPeriodRange() {
+    if (!DATE_MIN || !DATE_MAX) return ["", ""];
+    if (state.periodMode === "all") return [DATE_MIN, DATE_MAX];
+    if (state.periodMode === "custom") {
+      var from = state.customFrom || DATE_MIN, to = state.customTo || DATE_MAX;
+      if (from > to) { var t = from; from = to; to = t; }
+      return [from, to];
+    }
+    var parts = state.periodMode.split("-");
+    var y = Number(parts[0]), m = Number(parts[1]);
+    var last = lastDayOfMonth(y, m);
+    return [state.periodMode + "-01", state.periodMode + "-" + String(last).padStart(2, "0")];
+  }
+
+  function monthsInRange(from, to) {
+    var months = [];
+    if (!from || !to) return months;
+    var fp = from.split("-"), tp = to.split("-");
+    var y = Number(fp[0]), m = Number(fp[1]);
+    var ey = Number(tp[0]), em = Number(tp[1]);
+    while (y < ey || (y === ey && m <= em)) {
+      months.push(y + "-" + String(m).padStart(2, "0"));
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+    return months;
+  }
+
+  function getFilteredRows() {
+    var range = getPeriodRange(), from = range[0], to = range[1];
+    return DATA.filter(function (row) {
+      if (row.d < from || row.d > to) return false;
+      if (!state.regions.has(row.r)) return false;
+      if (!state.products.has(row.p)) return false;
+      return true;
+    });
+  }
+
+  function el(tag, className, text) {
+    var e = document.createElement(tag);
+    if (className) e.className = className;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function buildComboPanel(panelEl, items, selectedSet, colorMap, metaMap, onChange) {
+    panelEl.innerHTML = "";
+    var actions = el("div", "combo-panel-actions");
+    var allBtn = el("button", "", "すべて選択");
+    allBtn.type = "button";
+    var clearBtn = el("button", "", "解除");
+    clearBtn.type = "button";
+    allBtn.addEventListener("click", function () { items.forEach(function (i) { selectedSet.add(i); }); onChange(); });
+    clearBtn.addEventListener("click", function () { selectedSet.clear(); onChange(); });
+    actions.appendChild(allBtn);
+    actions.appendChild(clearBtn);
+    panelEl.appendChild(actions);
+
+    items.forEach(function (item) {
+      var label = el("label");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = selectedSet.has(item);
+      cb.addEventListener("change", function () {
+        if (cb.checked) selectedSet.add(item); else selectedSet.delete(item);
+        onChange();
+      });
+      label.appendChild(cb);
+      if (colorMap) {
+        var sw = el("i", "swatch-inline");
+        sw.style.background = colorMap[item];
+        label.appendChild(sw);
+      }
+      label.appendChild(document.createTextNode(item));
+      if (metaMap && metaMap[item]) {
+        label.appendChild(el("span", "file-meta", metaMap[item]));
+      }
+      panelEl.appendChild(label);
+    });
+  }
+
+  function setupCombo(btnId, panelId, countId, items, selectedSet, colorMap, metaMap, onChange) {
+    var btn = document.getElementById(btnId);
+    var panel = document.getElementById(panelId);
+    var countEl = document.getElementById(countId);
+
+    function refreshPanel() { buildComboPanel(panel, items, selectedSet, colorMap, metaMap, onChange); }
+    function refreshCount() {
+      if (selectedSet.size === items.length) { countEl.hidden = true; }
+      else { countEl.hidden = false; countEl.textContent = selectedSet.size + "/" + items.length; }
+    }
+    refreshPanel();
+    refreshCount();
+
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var willOpen = panel.hidden;
+      closeAllPanels();
+      if (willOpen) {
+        panel.hidden = false;
+        btn.setAttribute("aria-expanded", "true");
+      }
+    });
+
+    return { refreshPanel: refreshPanel, refreshCount: refreshCount, panel: panel, btn: btn };
+  }
+
+  var comboHandles = [];
+  function closeAllPanels() {
+    comboHandles.forEach(function (h) {
+      h.panel.hidden = true;
+      h.btn.setAttribute("aria-expanded", "false");
+    });
+  }
+  document.addEventListener("click", closeAllPanels);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeAllPanels(); });
+
+  function monthLabel(m) { return String(Number(m.split("-")[1])) + "月"; }
+
+  function renderFilterSummary() {
+    var summary = document.getElementById("filter-summary");
+    var parts = [];
+    var range = getPeriodRange();
+    if (state.periodMode === "all") parts.push("期間: 全期間");
+    else if (state.periodMode === "custom") parts.push("期間: " + range[0] + " 〜 " + range[1]);
+    else parts.push("期間: " + monthLabel(state.periodMode) + " (" + range[0] + " 〜 " + range[1] + ")");
+
+    parts.push("地域: " + (state.regions.size === REGION_ORDER.length ? "すべて" : (state.regions.size === 0 ? "なし" : Array.from(state.regions).join("・"))));
+    parts.push("商品: " + (state.products.size === PRODUCT_ORDER.length ? "すべて" : (state.products.size === 0 ? "なし" : state.products.size + "件選択")));
+    summary.innerHTML = "";
+    parts.forEach(function (p, i) {
+      if (i > 0) summary.appendChild(document.createTextNode("  ・  "));
+      summary.appendChild(document.createTextNode(p));
+    });
+  }
+
+  function render() {
+    var rows = getFilteredRows();
+    var total = 0, qty = 0;
+    rows.forEach(function (r) { total += r.a; qty += r.q; });
+    var count = rows.length;
+    var avg = count ? total / count : 0;
+
+    document.getElementById("kpi-total").textContent = yen(total);
+    document.getElementById("kpi-total-sub").textContent = count ? "選択条件に一致する売上合計" : "該当データがありません";
+    document.getElementById("kpi-count").innerHTML = fmt(count) + '<span class="unit">件</span>';
+    document.getElementById("kpi-count-sub").textContent = "数量合計 " + fmt(qty) + "個";
+    document.getElementById("kpi-avg").innerHTML = yen(avg) + '<span class="unit">/件</span>';
+
+    var filesLabel = selectedFiles.size ? Array.from(selectedFiles).join("、") : "(ファイル未選択)";
+    document.getElementById("record-count").textContent = "対象データ " + filesLabel + " ・ 全" + DATA.length + "件中 " + count + "件を表示";
+
+    renderTrend(rows);
+    renderRanking(rows);
+    renderCategory(rows);
+    renderRegion(rows);
+    renderFilterSummary();
+  }
+
+  function renderTrend(rows) {
+    var card = document.getElementById("trend-card");
+    card.innerHTML = "";
+    var range = getPeriodRange();
+    var months = monthsInRange(range[0], range[1]);
+
+    if (!months.length) { card.appendChild(el("div", "empty-note", "該当する期間がありません")); return; }
+
+    var sums = months.map(function (m) {
+      var s = 0, c = 0, q = 0;
+      rows.forEach(function (r) { if (r.d.slice(0, 7) === m) { s += r.a; c++; q += r.q; } });
+      return { month: m, sum: s, count: c, qty: q };
+    });
+    var max = Math.max.apply(null, sums.map(function (s) { return s.sum; }).concat([1]));
+
+    var barsWrap = el("div", "trend-bars");
+    var footWrap = el("div", "trend-foot");
+    sums.forEach(function (s) {
+      var col = el("div", "trend-col");
+      col.title = s.month + " ・ 売上" + yen(s.sum) + " ・ " + fmt(s.count) + "件 ・ " + fmt(s.qty) + "個";
+      var val = el("div", "trend-value num", yen(s.sum));
+      var bar = el("div", "trend-bar");
+      bar.style.height = (max > 0 ? Math.max(1, (s.sum / max) * 100) : 0) + "%";
+      col.appendChild(val);
+      col.appendChild(bar);
+      barsWrap.appendChild(col);
+
+      var mcol = el("div", "trend-month");
+      var mLabel = el("span", "m", s.month);
+      var dLabel = el("span", "d", fmt(s.count) + "件 ・ " + fmt(s.qty) + "個");
+      mcol.appendChild(mLabel);
+      mcol.appendChild(dLabel);
+      footWrap.appendChild(mcol);
+    });
+    card.appendChild(barsWrap);
+    card.appendChild(footWrap);
+  }
+
+  function renderRanking(rows) {
+    var card = document.getElementById("rank-card");
+    card.innerHTML = "";
+
+    var legend = el("div", "legend");
+    CATEGORY_ORDER.forEach(function (cat) {
+      var span = el("span");
+      var sw = el("i", "swatch");
+      sw.style.background = CATEGORY_COLOR[cat];
+      span.appendChild(sw);
+      span.appendChild(document.createTextNode(cat));
+      legend.appendChild(span);
+    });
+    card.appendChild(legend);
+
+    var productList = Array.from(state.products);
+    var agg = productList.map(function (p) {
+      var sum = 0, count = 0, qty = 0;
+      rows.forEach(function (r) { if (r.p === p) { sum += r.a; count++; qty += r.q; } });
+      return { product: p, sum: sum, count: count, qty: qty, category: PRODUCT_CATEGORY[p] || "" };
+    });
+    agg.sort(function (a, b) { return b.sum - a.sum; });
+    var max = Math.max.apply(null, agg.map(function (a) { return a.sum; }).concat([1]));
+
+    if (!agg.length || agg.every(function (a) { return a.sum === 0; })) {
+      card.appendChild(el("div", "empty-note", "該当する商品データがありません"));
+      return;
+    }
+
+    agg.forEach(function (a) {
+      var row = el("div", "rank-row");
+      row.title = a.product + " ・ " + a.category + " ・ 売上" + yen(a.sum) + " ・ " + fmt(a.count) + "件 ・ " + fmt(a.qty) + "個";
+      var name = el("div", "rank-name", a.product);
+      var track = el("div", "rank-track");
+      var fill = el("div", "rank-fill");
+      fill.style.width = (max > 0 ? Math.max(0, (a.sum / max) * 100) : 0) + "%";
+      fill.style.background = CATEGORY_COLOR[a.category] || "var(--muted)";
+      track.appendChild(fill);
+      var figs = el("div", "rank-figs");
+      var amt = el("span", "amt num", yen(a.sum));
+      var cnt = el("span", "cnt num", fmt(a.count) + "件 / " + fmt(a.qty) + "個");
+      figs.appendChild(amt);
+      figs.appendChild(cnt);
+      row.appendChild(name);
+      row.appendChild(track);
+      row.appendChild(figs);
+      card.appendChild(row);
+    });
+  }
+
+  function renderMiniCard(cardId, title, itemList, valueFn, colorMap) {
+    var card = document.getElementById(cardId);
+    card.innerHTML = "";
+    card.appendChild(el("div", "mini-title", title));
+
+    var agg = itemList.map(function (item) { return { item: item, val: valueFn(item) }; });
+    agg.sort(function (a, b) { return b.val - a.val; });
+    var max = Math.max.apply(null, agg.map(function (a) { return a.val; }).concat([1]));
+
+    if (!agg.length || agg.every(function (a) { return a.val === 0; })) {
+      card.appendChild(el("div", "empty-note", "該当データがありません"));
+      return;
+    }
+
+    agg.forEach(function (a) {
+      var row = el("div", "mini-row");
+      row.title = a.item + " ・ 売上" + yen(a.val);
+      var name = el("div", "mini-name", a.item);
+      var track = el("div", "mini-track");
+      var fill = el("div", "mini-fill");
+      fill.style.width = (max > 0 ? Math.max(0, (a.val / max) * 100) : 0) + "%";
+      fill.style.background = colorMap[a.item] || "var(--muted)";
+      track.appendChild(fill);
+      var val = el("div", "mini-val num", yen(a.val));
+      row.appendChild(name);
+      row.appendChild(track);
+      row.appendChild(val);
+      card.appendChild(row);
+    });
+  }
+
+  function renderCategory(rows) {
+    renderMiniCard("category-card", "カテゴリ別", CATEGORY_ORDER, function (cat) {
+      var s = 0; rows.forEach(function (r) { if (r.c === cat) s += r.a; }); return s;
+    }, CATEGORY_COLOR);
+  }
+
+  function renderRegion(rows) {
+    renderMiniCard("region-card", "地域別", Array.from(state.regions), function (region) {
+      var s = 0; rows.forEach(function (r) { if (r.r === region) s += r.a; }); return s;
+    }, REGION_COLOR);
+  }
+
+  /* ---- period preset generation (depends on currently loaded data) ---- */
+  var periodSeg = document.getElementById("period-seg");
+  var customRange = document.getElementById("custom-range");
+  var dateFrom = document.getElementById("date-from");
+  var dateTo = document.getElementById("date-to");
+
+  function makeSegBtn(label, period) {
+    var b = document.createElement("button");
+    b.className = "seg-btn";
+    b.type = "button";
+    b.dataset.period = period;
+    b.textContent = label;
+    return b;
+  }
+
+  function updateSegActive() {
+    Array.prototype.forEach.call(periodSeg.querySelectorAll(".seg-btn"), function (btn) {
+      btn.classList.toggle("active", btn.dataset.period === state.periodMode);
+    });
+  }
+
+  function buildPeriodSeg() {
+    periodSeg.innerHTML = "";
+    periodSeg.appendChild(makeSegBtn("全期間", "all"));
+    monthsInRange(DATE_MIN, DATE_MAX).forEach(function (m) {
+      periodSeg.appendChild(makeSegBtn(monthLabel(m), m));
+    });
+    periodSeg.appendChild(makeSegBtn("カスタム", "custom"));
+    updateSegActive();
+  }
+
+  function setPeriodMode(mode) {
+    state.periodMode = mode;
+    updateSegActive();
+    customRange.hidden = mode !== "custom";
+    render();
+  }
+
+  periodSeg.addEventListener("click", function (e) {
+    var btn = e.target.closest(".seg-btn");
+    if (!btn) return;
+    setPeriodMode(btn.dataset.period);
+  });
+  dateFrom.addEventListener("change", function () { state.customFrom = dateFrom.value || DATE_MIN; if (state.periodMode === "custom") render(); });
+  dateTo.addEventListener("change", function () { state.customTo = dateTo.value || DATE_MAX; if (state.periodMode === "custom") render(); });
+
+  var regionHandle = setupCombo("region-btn", "region-panel", "region-count", REGION_ORDER, state.regions, REGION_COLOR, null, function () {
+    regionHandle.refreshCount();
+    regionHandle.refreshPanel();
+    render();
+  });
+  comboHandles.push(regionHandle);
+
+  var productHandle = setupCombo("product-btn", "product-panel", "product-count", PRODUCT_ORDER, state.products, null, null, function () {
+    productHandle.refreshCount();
+    productHandle.refreshPanel();
+    render();
+  });
+  comboHandles.push(productHandle);
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    state.periodMode = "all";
+    state.customFrom = DATE_MIN;
+    state.customTo = DATE_MAX;
+    state.regions.clear(); REGION_ORDER.forEach(function (r) { state.regions.add(r); });
+    state.products.clear(); PRODUCT_ORDER.forEach(function (p) { state.products.add(p); });
+    dateFrom.value = DATE_MIN || "";
+    dateTo.value = DATE_MAX || "";
+    setPeriodMode("all");
+    regionHandle.refreshCount();
+    regionHandle.refreshPanel();
+    productHandle.refreshCount();
+    productHandle.refreshPanel();
+    render();
+  });
+
+  /* ---- CSV file loading (talks to the local Python server) ---- */
+  var loadErrorEl = document.getElementById("load-error");
+  function showLoadError(msg) {
+    loadErrorEl.textContent = "⚠ " + msg;
+    loadErrorEl.hidden = false;
+  }
+  function clearLoadError() { loadErrorEl.hidden = true; loadErrorEl.textContent = ""; }
+
+  var uploadStatusEl = document.getElementById("upload-status");
+  function showUploadStatus(msg) { uploadStatusEl.textContent = msg; uploadStatusEl.hidden = false; }
+  function clearUploadStatus() { uploadStatusEl.hidden = true; uploadStatusEl.textContent = ""; }
+
+  function computeDateRange() {
+    if (!DATA.length) { DATE_MIN = null; DATE_MAX = null; return; }
+    var min = DATA[0].d, max = DATA[0].d;
+    DATA.forEach(function (r) { if (r.d < min) min = r.d; if (r.d > max) max = r.d; });
+    DATE_MIN = min; DATE_MAX = max;
+  }
+
+  function afterDataLoaded() {
+    PRODUCT_CATEGORY = {};
+    DATA.forEach(function (row) { PRODUCT_CATEGORY[row.p] = row.c; });
+    computeDateRange();
+
+    var rangeLabel = document.getElementById("date-range-label");
+    if (DATE_MIN && DATE_MAX) {
+      rangeLabel.textContent = "データ期間 " + DATE_MIN + " – " + DATE_MAX;
+      dateFrom.min = DATE_MIN; dateFrom.max = DATE_MAX; dateFrom.value = DATE_MIN;
+      dateTo.min = DATE_MIN; dateTo.max = DATE_MAX; dateTo.value = DATE_MAX;
+      state.customFrom = DATE_MIN; state.customTo = DATE_MAX;
+    } else {
+      rangeLabel.textContent = "データ期間 -";
+    }
+
+    state.periodMode = "all";
+    buildPeriodSeg();
+    customRange.hidden = true;
+    render();
+  }
+
+  function loadData() {
+    var files = Array.from(selectedFiles);
+    if (!files.length) {
+      DATA = [];
+      afterDataLoaded();
+      return Promise.resolve();
+    }
+    return fetch("/api/data?files=" + encodeURIComponent(files.join(",")))
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (rows) {
+        DATA = rows;
+        afterDataLoaded();
+        clearLoadError();
+      })
+      .catch(function (err) {
+        showLoadError("データの取得に失敗しました(" + err.message + ")。dashboard_server.py が起動しているか確認してください。");
+      });
+  }
+
+  var FILE_NAMES = [];   // mutated in place so the combo's closures stay valid across refreshes
+  var FILE_META = {};    // filename -> "N件" label, also mutated in place
+  var fileHandle = null;
+
+  function loadFileList(autoSelectName) {
+    return fetch("/api/files")
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (list) {
+        FILES = list;
+        var names = FILES.map(function (f) { return f.filename; });
+
+        FILE_NAMES.length = 0;
+        names.forEach(function (n) { FILE_NAMES.push(n); });
+
+        Object.keys(FILE_META).forEach(function (k) { delete FILE_META[k]; });
+        FILES.forEach(function (f) { FILE_META[f.filename] = f.rows + "件"; });
+
+        if (!fileHandle) {
+          // first load: select everything found
+          names.forEach(function (n) { selectedFiles.add(n); });
+          fileHandle = setupCombo("file-btn", "file-panel", "file-count", FILE_NAMES, selectedFiles, null, FILE_META, function () {
+            fileHandle.refreshCount();
+            fileHandle.refreshPanel();
+            loadData();
+          });
+          comboHandles.push(fileHandle);
+        } else {
+          // later refresh (e.g. after a drag-and-drop upload): drop selections for files
+          // that disappeared, keep the rest, and auto-select the newly uploaded one
+          var stillPresent = new Set(names);
+          Array.from(selectedFiles).forEach(function (n) { if (!stillPresent.has(n)) selectedFiles.delete(n); });
+          if (autoSelectName && stillPresent.has(autoSelectName)) selectedFiles.add(autoSelectName);
+          fileHandle.refreshCount();
+          fileHandle.refreshPanel();
+        }
+
+        if (!names.length) {
+          showLoadError("同じ形式のCSVファイルが見つかりません。売上データ.csvと同じ列構成のCSVをこのフォルダに置くか、下のドロップ欄にドラッグ&ドロップしてください。");
+          DATA = [];
+          afterDataLoaded();
+          return;
+        }
+        return loadData();
+      })
+      .catch(function (err) {
+        showLoadError("サーバーに接続できません(" + err.message + ")。コマンドプロンプトで python dashboard_server.py を実行し、表示されたURLをブラウザで開いてください。");
+      });
+  }
+
+  /* ---- drag & drop CSV upload ---- */
+  var dropzone = document.getElementById("dropzone");
+
+  ["dragenter", "dragover"].forEach(function (evt) {
+    dropzone.addEventListener(evt, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.add("drag-over");
+    });
+  });
+  ["dragleave", "drop"].forEach(function (evt) {
+    dropzone.addEventListener(evt, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.remove("drag-over");
+    });
+  });
+  dropzone.addEventListener("drop", function (e) {
+    var dropped = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+    var csvFiles = dropped.filter(function (f) { return f.name.toLowerCase().endsWith(".csv"); });
+    if (!dropped.length) return;
+    if (!csvFiles.length) {
+      showLoadError("CSVファイル(拡張子 .csv)をドロップしてください。");
+      return;
+    }
+    csvFiles.reduce(function (chain, file) {
+      return chain.then(function () { return uploadFile(file); });
+    }, Promise.resolve());
+  });
+
+  function uploadFile(file) {
+    showUploadStatus("アップロード中: " + file.name);
+    return fetch("/api/upload", {
+      method: "POST",
+      headers: { "X-Filename": encodeURIComponent(file.name) },
+      body: file
+    })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) { return { ok: res.ok, data: data }; });
+      })
+      .then(function (result) {
+        clearUploadStatus();
+        if (!result.ok) {
+          showLoadError(file.name + ": " + (result.data && result.data.error ? result.data.error : "アップロードに失敗しました"));
+          return;
+        }
+        clearLoadError();
+        return loadFileList(result.data.filename);
+      })
+      .catch(function (err) {
+        clearUploadStatus();
+        showLoadError(file.name + ": アップロードに失敗しました(" + err.message + ")");
+      });
+  }
+
+  loadFileList();
+})();
+</script>
+</body>
+</html>
